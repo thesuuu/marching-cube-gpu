@@ -15,8 +15,10 @@ typedef unsigned char uchar;
 
 // The number of threads to use for triangle generation (limited by shared
 // memory size)
-#define NTHREADS 32
+#define NTHREADS 128
 
 #define SKIP_EMPTY_VOXELS 1
 
 #define DEBUG_BUFFERS 0
+
+#define USE_BUCKY 0

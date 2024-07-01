@@ -39,3 +39,5 @@ void writePLY(const std::vector<float4>& vertices, const std::string& filename) 
 
 
 
+
+

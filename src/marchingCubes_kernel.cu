@@ -254,11 +254,12 @@ __global__ void generateTriangles2(
     cudaTextureObject_t volumeTex) {
 
     uint blockId = __mul24(blockIdx.y, gridDim.x) + blockIdx.x;
-    uint i = __mul24(blockId, blockDim.x) + threadIdx.x;
-    
+    uint i = __mul24(blockId, blockDim.x) + threadIdx.x;  
+
     if (i > activeVoxels - 1) {
         i = activeVoxels - 1;
     }
+
 
 #if SKIP_EMPTY_VOXELS
     uint voxel = compactedVoxelArray[i];
@@ -302,6 +303,7 @@ __global__ void generateTriangles2(
         sampleVolume(volumeTex, volume, gridPos + make_uint3(1, 1, 1), gridSize);
     field[7] =
         sampleVolume(volumeTex, volume, gridPos + make_uint3(0, 1, 1), gridSize);
+
 #else
     // evaluate field values
     float field[8];
@@ -379,7 +381,8 @@ __global__ void generateTriangles2(
 
     // output triangle vertices
     uint numVerts = tex1Dfetch<uint>(numVertsTex, cubeindex);
-
+    
+    
     for (int i = 0; i < numVerts; i += 3) {
         uint index = numVertsScanned[voxel] + i;
 
@@ -418,8 +421,11 @@ __global__ void generateTriangles2(
 
             pos[index + 2] = make_float4(*v[2], 1.0f);
             //norm[index + 2] = make_float4(n, 0.0f);
+
+
         }
     }
+     
 }
 
 extern "C" void launch_generateTriangles2(
@@ -427,11 +433,29 @@ extern "C" void launch_generateTriangles2(
     uint * compactedVoxelArray, uint * numVertsScanned, uchar * volume,
     uint3 gridSize, uint3 gridSizeShift, uint3 gridSizeMask, float3 voxelSize,
     float isoValue, uint activeVoxels, uint maxVerts) {
+
+    //cudaEvent_t start, stop;
+    //cudaEventCreate(&start);
+    //cudaEventCreate(&stop);
+
+    //cudaEventRecord(start);
+
     generateTriangles2 << <grid, NTHREADS >> > (
         pos, norm, compactedVoxelArray, numVertsScanned, volume, gridSize,
         gridSizeShift, gridSizeMask, voxelSize, isoValue, activeVoxels, maxVerts,
         triTex, numVertsTex, volumeTex);
-  
+    
+    //cudaEventRecord(stop);
+
+    //cudaEventSynchronize(stop);
+
+    //float milliseconds = 0;
+    //cudaEventElapsedTime(&milliseconds, start, stop);
+    //printf("Kernel execution time: %f ms\n", milliseconds);
+
+    //cudaEventDestroy(start);
+    //cudaEventDestroy(stop);
+
     //getLastCudaError("generateTriangles2 failed");
 }
 

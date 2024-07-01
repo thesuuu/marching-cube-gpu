@@ -33,10 +33,16 @@ extern "C" void destroyAllTextureObjects();
 extern "C" void ThrustScanWrapper(unsigned int* output, unsigned int* input,
     unsigned int numElements);
 
+#if USE_BUCKY
+    const char* file_in = "D:/Data/Bucky.raw";
+    uint3 gridSizeLog2 = make_uint3(5, 5, 5);
+    float isoValue = 0.2f;
+#else
+    const char* file_in = "D:/Data/sphere_128_uchar.raw";
+    uint3 gridSizeLog2 = make_uint3(7, 7, 7);
+    float isoValue = 0.2f;
+#endif
 
-const char* file_in = "D:/Data/Bucky.raw";
-
-uint3 gridSizeLog2 = make_uint3(5, 5, 5);
 uint3 gridSizeShift;
 uint3 gridSize;
 uint3 gridSizeMask;
@@ -46,9 +52,6 @@ uint numVoxels = 0;
 uint maxVerts = 0;
 uint activeVoxels = 0;
 uint totalVerts = 0;
-
-
-float isoValue = 0.2f;
 
 float4* d_pos = 0, * d_normal = 0;
 
@@ -80,6 +83,8 @@ uchar* loadRawFile(const char* filename, int size) {
 
     return data;
 }
+
+
 
 template <class T>
 void dumpBuffer(T* d_buffer, int nelements, int size_element) {
@@ -125,7 +130,12 @@ void initMC() {
     numVoxels = gridSize.x * gridSize.y * gridSize.z;
     voxelSize =
         make_float3(2.0f / gridSize.x, 2.0f / gridSize.y, 2.0f / gridSize.z);
+    
+#if USE_BUCKY
     maxVerts = gridSize.x * gridSize.y * 100;
+#else
+    maxVerts = gridSize.x * gridSize.y * gridSize.z * 2;
+#endif
 
     printf("grid: %d x %d x %d = %d voxels\n", gridSize.x, gridSize.y, gridSize.z,
         numVoxels);
@@ -134,12 +144,16 @@ void initMC() {
 #if SAMPLE_VOLUME
     int size = gridSize.x * gridSize.y * gridSize.z * sizeof(uchar);
     uchar* volume = loadRawFile(file_in, size);
+
     cudaMalloc((void**)&d_volume, size);
     cudaMemcpy(d_volume, volume, size, cudaMemcpyHostToDevice);
     free(volume);
 
     createVolumeTexture(d_volume, size);
 #endif
+
+    cudaMalloc((void**)&(d_pos), maxVerts * sizeof(float) * 4);
+    //cudaMalloc((void**)&(d_normal), maxVerts * sizeof(float) * 4);
 
     // allocate textures
     allocateTextures(&d_edgeTable, &d_triTable, &d_numVertsTable);
@@ -284,7 +298,7 @@ int main()
     printf("Writing to ply...\n");
 
     std::vector<float4> vertices(maxVerts);
-    cudaMemcpy(vertices.data(), d_pos, maxVerts * sizeof(float4), cudaMemcpyDeviceToHost);    
+    cudaMemcpy(vertices.data(), d_pos, maxVerts * sizeof(float4), cudaMemcpyDeviceToHost);
     
     writePLY(vertices, "output.ply");
 
